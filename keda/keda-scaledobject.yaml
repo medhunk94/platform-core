@@ -1,0 +1,43 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: kafka-consumer-scaledobject
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: kafka-consumer
+    app.kubernetes.io/component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: kafka-consumer
+  pollingInterval: 15
+  cooldownPeriod: 300
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Pods
+              value: 2
+              periodSeconds: 120
+
+  triggers:
+    - type: kafka
+      metadata:
+        # Kafka broker list
+        bootstrapServers: kafka-broker.kafka.svc.cluster.local:9092
+        # Consumer group to monitor
+        consumerGroup: my-service-consumer-group
+        # Topic to watch
+        topic: platform-events
+        # Lag threshold per partition before scaling up
+        lagThreshold: "100"
+        # Don't scale from 0 unless lag exceeds this value (prevents noise)
+        activationLagThreshold: "10"
+        # Use sasl auth if kafka is secured
+        sasl: disable
+        tls: disable
