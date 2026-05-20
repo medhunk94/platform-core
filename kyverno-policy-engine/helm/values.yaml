@@ -1,0 +1,14 @@
+admissionController:
+  replicas: 1        # 3 in production for HA; 1 is fine for single-node kind
+backgroundController:
+  replicas: 1        # reconciles existing resources against policies
+cleanupController:
+  replicas: 1        # handles TTL-based resource cleanup policies
+reportsController:
+  replicas: 1        # generates PolicyReport and ClusterPolicyReport objects
+config:
+  webhooks:
+    # Fail-open: if Kyverno is down, requests are ALLOWED through
+    # Fail-closed (Fail) is safer but will break your cluster if Kyverno crashes
+    # Use Fail in production only when Kyverno is HA (3 replicas + PDB)
+    failurePolicy: Ignore
