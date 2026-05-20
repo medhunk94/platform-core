@@ -1,0 +1,66 @@
+---
+# ServiceMonitor — tells Prometheus operator to scrape KEDA metrics
+# Requires kube-prometheus-stack or Prometheus Operator installed
+# Values-prod.yaml enables ServiceMonitors via Helm; this file adds extra scrape configs
+# and is useful if you manage ServiceMonitors outside of the KEDA Helm release.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: keda-operator-metrics
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack    # must match Prometheus operator's serviceMonitorSelector
+spec:
+  namespaceSelector:
+    matchNames:
+      - keda
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keda-operator
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: keda-metrics-apiserver
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - keda
+  selector:
+    matchLabels:
+      app: keda-operator-metrics-apiserver
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+---
+# PodMonitor — scrape the admission webhooks pod (no dedicated Service in some installs)
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: keda-admission-webhooks
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - keda
+  selector:
+    matchLabels:
+      app: keda-admission-webhooks
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

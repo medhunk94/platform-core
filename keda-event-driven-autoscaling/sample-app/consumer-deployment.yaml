@@ -1,0 +1,44 @@
+---
+# Sample consumer Deployment — targets the kafka-scaledobject-local.yaml ScaledObject
+# Uses bitnami/kafka image since it has kafka CLI tools built in.
+# In a real service this would be your application container.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-processor
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: order-processor
+    app.kubernetes.io/component: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-processor
+  template:
+    metadata:
+      labels:
+        app: order-processor
+        app.kubernetes.io/name: order-processor
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: consumer
+          image: apache/kafka:3.9.0
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Starting consumer for group order-processor-consumer-group"
+              /opt/kafka/bin/kafka-console-consumer.sh \
+                --bootstrap-server kafka.kafka.svc.cluster.local:9092 \
+                --topic platform-events \
+                --group order-processor-consumer-group \
+                --from-beginning
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

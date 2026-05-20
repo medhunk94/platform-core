@@ -1,0 +1,89 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kafka-consumer-sa
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: kafka-consumer
+    app.kubernetes.io/component: consumer
+automountServiceAccountToken: false   # disable unless workload actually needs API access
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notification-worker-sa
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: notification-worker
+    app.kubernetes.io/component: worker
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fraud-detector-sa
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: fraud-detector
+    app.kubernetes.io/component: detector
+automountServiceAccountToken: false
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: scaledobject-reader
+  namespace: platform
+rules:
+  - apiGroups: ["keda.sh"]
+    resources: ["scaledobjects", "scaledjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: scaledobject-reader-binding
+  namespace: platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: scaledobject-reader
+subjects:
+  - kind: ServiceAccount
+    name: monitoring-agent-sa
+    namespace: monitoring
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-consumer-egress
+  namespace: platform
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kafka-consumer
+  policyTypes:
+    - Egress
+  egress:
+    # Allow Kafka broker
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---

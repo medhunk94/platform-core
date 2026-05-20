@@ -1,0 +1,105 @@
+image:
+  keda:
+    repository: ghcr.io/kedacore/keda
+    tag: "2.15.1"
+    pullPolicy: IfNotPresent
+  metricsApiServer:
+    repository: ghcr.io/kedacore/keda-metrics-apiserver
+    tag: "2.15.1"
+    pullPolicy: IfNotPresent
+  webhooks:
+    repository: ghcr.io/kedacore/keda-admission-webhooks
+    tag: "2.15.1"
+    pullPolicy: IfNotPresent
+
+operator:
+  replicaCount: 1
+  revisionHistoryLimit: 5
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: 1000m
+      memory: 1000Mi
+
+metricsServer:
+  replicaCount: 1
+  revisionHistoryLimit: 5
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: 500m
+      memory: 500Mi
+
+webhooks:
+  enabled: true
+  replicaCount: 1
+  revisionHistoryLimit: 5
+  resources:
+    requests:
+      cpu: 50m
+      memory: 50Mi
+    limits:
+      cpu: 200m
+      memory: 200Mi
+
+serviceAccount:
+  create: true
+  name: keda-operator
+  automountServiceAccountToken: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+podDisruptionBudget:
+  operator:
+    create: false
+  metricServer:
+    create: false
+  webhooks:
+    create: false
+
+logging:
+  operator:
+    level: info
+    format: json
+  metricServer:
+    level: 0      # integer — metrics-apiserver uses -v flag, not --log-level
+    format: json
+  webhooks:
+    level: info
+    format: json
+
+prometheus:
+  operator:
+    enabled: true
+    port: 8080
+    path: /metrics
+    serviceMonitor:
+      enabled: false
+  metricServer:
+    enabled: true
+    port: 9022
+    serviceMonitor:
+      enabled: false
+  webhooks:
+    enabled: true
+    port: 8080
+    serviceMonitor:
+      enabled: false
