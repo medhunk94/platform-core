@@ -1,15 +1,10 @@
 # KEDA — Event-Driven Autoscaling Platform
 
 > **Mini Platform Engineering Portfolio Project**  
-> Production-grade KEDA implementation covering real-world scaling scenarios,  
-> GitOps-ready manifests, monitoring, load-testing, and operational runbooks.
 
 ---
 
 ## What this project delivers
-
-This is not a "hello world" KEDA demo. It models what a platform engineering team  
-ships to production — opinionated, battle-tested, observable, and documented.
 
 | Capability | What's included |
 |---|---|
