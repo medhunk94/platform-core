@@ -1,0 +1,55 @@
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: order-processor-scaledobject
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: order-processor
+    app.kubernetes.io/component: autoscaler
+    app.kubernetes.io/managed-by: keda
+    team: platform-engineering
+  annotations:
+    keda.sh/description: "Scales order-processor based on Kafka consumer group lag"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: order-processor
+
+  pollingInterval: 15
+  cooldownPeriod: 300  # absorbs rebalance storms; prevents flapping after scale-down
+  minReplicaCount: 0   # scale-to-zero when no lag — saves compute during quiet periods
+  maxReplicaCount: 20  # matches partition count; extra replicas receive no partition assignment
+
+  advanced:
+    restoreToOriginalReplicaCount: false
+    horizontalPodAutoscalerConfig:
+      name: order-processor-hpa
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 30
+            - type: Pods
+              value: 5
+              periodSeconds: 30
+          selectPolicy: Max
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Pods
+              value: 2
+              periodSeconds: 120
+
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.kafka.svc.cluster.local:9092
+        consumerGroup: order-processor-consumer-group
+        topic: platform-events
+        lagThreshold: "100"
+        activationLagThreshold: "10"  # prevents a single stray message from waking idle pods
+        offsetResetPolicy: latest
