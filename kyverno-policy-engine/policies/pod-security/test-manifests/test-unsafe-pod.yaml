@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-unsafe-pod
+  namespace: test-kyverno
+  labels:
+    purpose: kyverno-policy-test
+    expected-result: blocked
+spec:
+  # These settings violate all 5 pod security policies:
+  # - privileged: true          → blocked by block-privileged-containers
+  # - runAsNonRoot: false       → blocked by block-run-as-root
+  # - allowPrivilegeEscalation  → blocked by disallow-privilege-escalation
+  # - readOnlyRootFilesystem    → blocked by require-readonly-rootfs
+  # - hostNetwork/hostPID/hostIPC → blocked by restrict-host-namespaces
+  hostNetwork: true
+  hostPID: true
+  hostIPC: true
+  containers:
+    - name: test-unsafe
+      image: nginx:1.25.3
+      securityContext:
+        privileged: true
+        runAsNonRoot: false
+        allowPrivilegeEscalation: true
+        readOnlyRootFilesystem: false
