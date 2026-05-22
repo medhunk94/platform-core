@@ -2,7 +2,7 @@
 
 A hands-on portfolio of platform engineering practices built on a local Kubernetes
 cluster (kind). Each project tackles a different operational concern that any
-production platform team deals with — scaling, governance, security, and resilience.
+production platform team deals with, scaling, governance, security, and resilience.
 
 Everything here was built and tested locally. No cloud account needed.
 
