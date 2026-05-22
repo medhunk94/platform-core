@@ -1,0 +1,20 @@
+apiServer:
+  resources:
+    requests:
+      cpu: "500m"
+      memory: 2Gi
+    limits:
+      memory: 3Gi
+  # Reduce to single replica for local kind cluster
+  replicaCount: 1
+
+frontend:
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  replicaCount: 1
+  # Browser-accessible URL — must match the port-forwarded API server
+  apiBaseUrl: "http://localhost:8081"

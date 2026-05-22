@@ -28,6 +28,7 @@ spec:
                 - kyverno
                 - keda
                 - monitoring
+                - dependency-track
       validate:
         message: "All containers must define cpu and memory requests and limits"
         foreach:
