@@ -28,6 +28,7 @@ spec:
                 - kyverno
                 - keda
                 - monitoring
+                - dependency-track
       validate:
         message: "Root filesystem must be read-only. Set securityContext.readOnlyRootFilesystem: true and mount writable volumes explicitly"
         pattern:
