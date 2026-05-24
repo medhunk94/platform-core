@@ -28,6 +28,9 @@ spec:
                 - kyverno
                 - keda
                 - monitoring
+                - minio
+                - dependency-track
+                - velero
       validate:
         message: "Privilege escalation is not allowed. Set securityContext.allowPrivilegeEscalation: false"
         pattern:
