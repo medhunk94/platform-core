@@ -28,6 +28,9 @@ spec:
                 - kyverno
                 - keda
                 - monitoring
+                - minio
+                - dependency-track
+                - velero
       validate:
         message: "Containers must not run as root. Set securityContext.runAsNonRoot: true"
         pattern:
