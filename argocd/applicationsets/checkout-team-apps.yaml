@@ -37,10 +37,10 @@ spec:
         # Use shared chart if chartPath specified, otherwise use app's own chart
         path: '{{ if .chartPath }}{{ .chartPath }}{{ else }}{{ trimSuffix "/config.json" .path.path }}{{ end }}'
         helm:
-          # Load values from the microservice's folder
+          # Load values from the microservice's folder (paths relative to chart directory)
           valueFiles:
-            - '{{ if .chartPath }}../../{{ trimSuffix "/config.json" .path.path }}/values.yaml{{ else }}values.yaml{{ end }}'
-            - '{{ if .chartPath }}../../{{ trimSuffix "/config.json" .path.path }}/values-dev.yaml{{ else }}values-dev.yaml{{ end }}'
+            - '{{ if .chartPath }}{{ trimSuffix "/config.json" .path.path | replace "apps/" "../../" }}/values.yaml{{ else }}values.yaml{{ end }}'
+            - '{{ if .chartPath }}{{ trimSuffix "/config.json" .path.path | replace "apps/" "../../" }}/values-dev.yaml{{ else }}values-dev.yaml{{ end }}'
 
       destination:
         server: https://kubernetes.default.svc

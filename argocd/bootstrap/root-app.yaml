@@ -6,7 +6,8 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.io
 spec:
-  project: platform-team
+  # Use default project for bootstrap - has permissions for ApplicationSets
+  project: default
 
   source:
     repoURL: https://github.com/medhunk94/platform-core.git
