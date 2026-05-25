@@ -1,0 +1,39 @@
+# Application: keda-workloads
+#
+# Manages the KEDA sample workloads — Kafka StatefulSet, ScaledObject, RBAC.
+# These are the manifests that demonstrate event-driven autoscaling.
+#
+# Note the separation of concerns:
+#   - KEDA controllers (the operator itself) are installed once by the platform team via Helm
+#   - KEDA workloads (what to scale, triggers, sample app) are managed here via GitOps
+#
+# This mirrors real production: operators are platform-owned, workload configs are team-owned.
+# A developer opens a PR to change the ScaledObject's minReplicaCount — ArgoCD applies it.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keda-workloads
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.io
+spec:
+  project: platform-team
+
+  source:
+    repoURL: https://github.com/medhunk94/platform-core.git
+    targetRevision: main
+    path: keda-event-driven-autoscaling/manifests
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keda-kafka
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Create the keda-kafka namespace if it doesn't exist
+      - CreateNamespace=true
+      - ServerSideApply=true

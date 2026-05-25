@@ -1,0 +1,44 @@
+# Application: kyverno-policies
+#
+# Manages all Kyverno ClusterPolicy resources from Git.
+# When a policy is added, changed, or removed in Git, ArgoCD
+# applies the change to the cluster automatically — no manual kubectl needed.
+#
+# This is why GitOps + Kyverno is powerful:
+#   - Policy changes go through Git PR review
+#   - Every change has a commit, author, timestamp
+#   - selfHeal: true means someone can't bypass a policy by deleting it in the cluster
+#     ArgoCD will re-apply it from Git within minutes
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.io
+spec:
+  project: platform-team
+
+  source:
+    repoURL: https://github.com/medhunk94/platform-core.git
+    targetRevision: main
+    # Sync all ClusterPolicy YAMLs from this path recursively
+    path: kyverno-policy-engine/policies
+    directory:
+      recurse: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    # ClusterPolicies are cluster-scoped — namespace is ignored for them
+    # but ArgoCD requires a destination namespace to be set
+    namespace: kyverno
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      # Don't fail sync if a resource has server-side fields ArgoCD didn't set
+      - ServerSideApply=true

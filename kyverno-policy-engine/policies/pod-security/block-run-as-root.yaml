@@ -31,6 +31,7 @@ spec:
                 - minio
                 - dependency-track
                 - velero
+                - argocd
       validate:
         message: "Containers must not run as root. Set securityContext.runAsNonRoot: true"
         pattern:

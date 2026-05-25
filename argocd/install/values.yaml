@@ -1,0 +1,72 @@
+# ArgoCD Helm values — kind cluster (single-node, no HA)
+# Chart: argo/argo-cd
+
+global:
+  # Reduce default resource requests for a local kind cluster
+  nodeSelector: {}
+
+configs:
+  params:
+    # Disable TLS on the server — we access via port-forward on plain HTTP
+    server.insecure: true
+  cm:
+    # Allow ArgoCD to manage cluster-scoped resources (ClusterPolicies, etc.)
+    resource.exclusions: ""
+
+# ArgoCD server (the UI + API)
+server:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Application controller — reconciles Git state to cluster state
+controller:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Repo server — clones and renders manifests from Git
+repoServer:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ApplicationSet controller — manages sets of Applications
+applicationSet:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Redis — ArgoCD internal cache
+redis:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Disable Dex (SSO/OIDC) — not needed for a local demo cluster
+dex:
+  enabled: false
+
+# Disable notifications — no Slack/email setup needed
+notifications:
+  enabled: false

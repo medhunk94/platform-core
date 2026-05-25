@@ -28,6 +28,7 @@ spec:
                 - kyverno
                 - keda
                 - monitoring
+                - argocd
       validate:
         message: "Privileged containers are not allowed. Remove securityContext.privileged: true"
         pattern:

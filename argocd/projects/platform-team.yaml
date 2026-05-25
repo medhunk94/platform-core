@@ -1,0 +1,43 @@
+# AppProject: platform-team
+#
+# AppProjects are ArgoCD's way of implementing multi-team RBAC.
+# This project restricts what source repos, destination clusters,
+# and resource types this team's Applications are allowed to use.
+#
+# In a real platform team you'd have separate projects per team:
+#   platform-team  → owns infra policies, KEDA, monitoring configs
+#   app-team-a     → owns their microservices in namespace team-a
+#   app-team-b     → owns their microservices in namespace team-b
+#
+# Each team can only deploy from their allowed repos to their allowed namespaces.
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-team
+  namespace: argocd
+  # Finalizer prevents accidental deletion while Applications reference this project
+  finalizers:
+    - resources-finalizer.argocd.io
+spec:
+  description: Platform engineering team — manages cluster-wide policies and shared workloads
+
+  # Only allow syncing from our platform-core GitHub repo
+  sourceRepos:
+    - "https://github.com/medhunk94/platform-core.git"
+
+  # Allow deploying to any namespace on the local cluster
+  # In production you'd restrict this per team (e.g. only namespace: team-a)
+  destinations:
+    - namespace: "*"
+      server: https://kubernetes.default.svc
+
+  # Allow managing cluster-scoped resources (ClusterPolicy, ClusterRole, etc.)
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # Allow managing all namespace-scoped resources
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
