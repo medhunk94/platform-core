@@ -1,0 +1,42 @@
+# AppProject: checkout-team
+#
+# Checkout team can ONLY deploy to the 'checkout' namespace.
+# This enforces team boundaries — checkout team cannot accidentally deploy
+# into orders, payment, or any other team's namespaces.
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: checkout-team
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.io
+spec:
+  description: >-
+    Checkout team — owns checkout-service microservice.
+    Deploys only to 'checkout' namespace.
+
+  sourceRepos:
+    - "https://github.com/medhunk94/platform-core.git"
+
+  # ONLY checkout namespace — cannot deploy anywhere else
+  destinations:
+    - namespace: checkout
+      server: https://kubernetes.default.svc
+
+  # Can create the checkout namespace
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  # Can only create resources that the microservice chart generates
+  namespaceResourceWhitelist:
+    - group: "apps"
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+
+  orphanedResources:
+    warn: true

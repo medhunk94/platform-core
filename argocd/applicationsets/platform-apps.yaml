@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-apps
+  namespace: argocd
+spec:
+  # goTemplate enables Go/Sprig template functions in the template section
+  # (base, trimSuffix, dir, etc.) instead of the limited {{ path.basename }} syntax
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    - git:
+        repoURL: https://github.com/medhunk94/platform-core.git
+        revision: feature/systemcharts
+        # Discover every config.json under apps/ — each file represents one deployable app
+        files:
+          - path: "apps/**/config.json"
+
+  template:
+    metadata:
+      name: '{{ base (trimSuffix "/config.json" .path.path) }}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.io
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{ .syncWave }}'
+
+    spec:
+      project: platform-team
+
+      source:
+        repoURL: https://github.com/medhunk94/platform-core.git
+        targetRevision: feature/systemcharts
+        path: '{{ if .chartPath }}{{ .chartPath }}{{ else }}{{ trimSuffix "/config.json" .path.path }}{{ end }}'
+        helm:
+          valueFiles:
+            - '{{ if .chartPath }}../../{{ trimSuffix "/config.json" .path.path }}/values.yaml{{ else }}values.yaml{{ end }}'
+            - '{{ if .chartPath }}../../{{ trimSuffix "/config.json" .path.path }}/values-dev.yaml{{ else }}values-dev.yaml{{ end }}'
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .namespace }}'
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.io
+spec:
+  # Use default project for bootstrap - has permissions for ApplicationSets
+  project: default
+
+  source:
+    repoURL: https://github.com/medhunk94/platform-core.git
+    targetRevision: feature/systemcharts
+    path: argocd/applicationsets
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

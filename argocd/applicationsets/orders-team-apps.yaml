@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: orders-team-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    - git:
+        repoURL: https://github.com/medhunk94/platform-core.git
+        revision: feature/systemcharts
+        # ONLY discover apps under orders-team folder
+        files:
+          - path: "apps/orders-team/**/config.json"
+
+  template:
+    metadata:
+      # App name: order-service (from folder name)
+      name: '{{ base (trimSuffix "/config.json" .path.path) }}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.io
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{ .syncWave }}'
+      labels:
+        team: orders-team
+
+    spec:
+      # Orders team AppProject — enforces namespace boundaries
+      project: orders-team
+
+      source:
+        repoURL: https://github.com/medhunk94/platform-core.git
+        targetRevision: feature/systemcharts
+        # Use shared chart if chartPath specified, otherwise use app's own chart
+        path: '{{ if .chartPath }}{{ .chartPath }}{{ else }}{{ trimSuffix "/config.json" .path.path }}{{ end }}'
+        helm:
+          # Load values from the microservice's folder (paths relative to chart directory)
+          valueFiles:
+            - '{{ if .chartPath }}{{ trimSuffix "/config.json" .path.path | replace "apps/" "../../" }}/values.yaml{{ else }}values.yaml{{ end }}'
+            - '{{ if .chartPath }}{{ trimSuffix "/config.json" .path.path | replace "apps/" "../../" }}/values-dev.yaml{{ else }}values-dev.yaml{{ end }}'
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .namespace }}'
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

@@ -30,6 +30,8 @@ spec:
                 - monitoring
                 - dependency-track
                 - minio
+                - velero
+                - argocd
       validate:
         message: "All containers must define cpu and memory requests and limits"
         foreach:

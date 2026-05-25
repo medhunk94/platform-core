@@ -31,6 +31,7 @@ spec:
                 - dependency-track
                 - minio
                 - velero
+                - argocd
       validate:
         message: "Root filesystem must be read-only. Set securityContext.readOnlyRootFilesystem: true and mount writable volumes explicitly"
         pattern:

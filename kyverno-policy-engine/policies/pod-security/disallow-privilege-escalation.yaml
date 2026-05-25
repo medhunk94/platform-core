@@ -31,6 +31,7 @@ spec:
                 - minio
                 - dependency-track
                 - velero
+                - argocd
       validate:
         message: "Privilege escalation is not allowed. Set securityContext.allowPrivilegeEscalation: false"
         pattern:

@@ -1,0 +1,51 @@
+# Order Service - Production Configuration
+
+name: order-service
+namespace: orders
+
+image:
+  repository: spring-boot-order-service
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 3
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+healthCheck:
+  livenessPath: /actuator/health/liveness
+  readinessPath: /actuator/health/readiness
+  initialDelaySeconds: 45
+  periodSeconds: 10
+
+config:
+  SPRING_PROFILES_ACTIVE: "production"
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+  DATABASE_HOST: "postgres-orders.orders.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "orders_db"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC_ORDERS: "orders.events"
+  CACHE_ENABLED: "true"
+  CACHE_TTL: "300"
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
