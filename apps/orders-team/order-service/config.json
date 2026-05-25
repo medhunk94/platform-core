@@ -1,0 +1,6 @@
+{
+  "team": "orders-team",
+  "namespace": "orders",
+  "syncWave": "3",
+  "chartPath": "apps/_charts/microservice"
+}

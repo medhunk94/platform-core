@@ -1,0 +1,6 @@
+{
+  "team": "checkout-team",
+  "namespace": "checkout",
+  "syncWave": "3",
+  "chartPath": "apps/_charts/microservice"
+}

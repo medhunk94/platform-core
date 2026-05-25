@@ -1,0 +1,53 @@
+# Generic values for microservice Helm chart
+# Each microservice overrides these in their own values.yaml
+
+# Microservice identity
+name: ""                    # REQUIRED: microservice name (e.g., order-service)
+namespace: ""               # REQUIRED: deployment namespace (e.g., orders)
+
+# Container image
+image:
+  repository: ""            # REQUIRED: image repository (e.g., myregistry.io/order-service)
+  tag: "latest"             # Image tag
+  pullPolicy: IfNotPresent
+
+# Replica configuration
+replicaCount: 2
+
+# Resource limits (required by Kyverno policies)
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080              # Service port
+  targetPort: 8080        # Container port
+
+# Health check endpoints
+healthCheck:
+  livenessPath: /health
+  readinessPath: /health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+# Application configuration (injected as ConfigMap)
+config:
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+  # Add more app-specific config here
+
+# Security context (required by Kyverno policies)
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL

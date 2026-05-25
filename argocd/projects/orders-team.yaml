@@ -1,0 +1,42 @@
+# AppProject: orders-team
+#
+# Orders team can ONLY deploy to the 'orders' namespace.
+# This enforces team boundaries — orders team cannot accidentally deploy
+# into checkout, payment, or any other team's namespaces.
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: orders-team
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.io
+spec:
+  description: >-
+    Orders team — owns order-service microservice.
+    Deploys only to 'orders' namespace.
+
+  sourceRepos:
+    - "https://github.com/medhunk94/platform-core.git"
+
+  # ONLY orders namespace — cannot deploy anywhere else
+  destinations:
+    - namespace: orders
+      server: https://kubernetes.default.svc
+
+  # Can create the orders namespace
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  # Can only create resources that the microservice chart generates
+  namespaceResourceWhitelist:
+    - group: "apps"
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+
+  orphanedResources:
+    warn: true

@@ -1,11 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: platform-apps
+  name: checkout-team-apps
   namespace: argocd
 spec:
-  # goTemplate enables Go/Sprig template functions in the template section
-  # (base, trimSuffix, dir, etc.) instead of the limited {{ path.basename }} syntax
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
 
@@ -13,27 +11,33 @@ spec:
     - git:
         repoURL: https://github.com/medhunk94/platform-core.git
         revision: feature/systemcharts
-        # Discover every config.json under apps/ — each file represents one deployable app
+        # ONLY discover apps under checkout-team folder
         files:
-          - path: "apps/**/config.json"
+          - path: "apps/checkout-team/**/config.json"
 
   template:
     metadata:
+      # App name: checkout-service (from folder name)
       name: '{{ base (trimSuffix "/config.json" .path.path) }}'
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.io
       annotations:
         argocd.argoproj.io/sync-wave: '{{ .syncWave }}'
+      labels:
+        team: checkout-team
 
     spec:
-      project: platform-team
+      # Checkout team AppProject — enforces namespace boundaries
+      project: checkout-team
 
       source:
         repoURL: https://github.com/medhunk94/platform-core.git
         targetRevision: feature/systemcharts
+        # Use shared chart if chartPath specified, otherwise use app's own chart
         path: '{{ if .chartPath }}{{ .chartPath }}{{ else }}{{ trimSuffix "/config.json" .path.path }}{{ end }}'
         helm:
+          # Load values from the microservice's folder
           valueFiles:
             - '{{ if .chartPath }}../../{{ trimSuffix "/config.json" .path.path }}/values.yaml{{ else }}values.yaml{{ end }}'
             - '{{ if .chartPath }}../../{{ trimSuffix "/config.json" .path.path }}/values-dev.yaml{{ else }}values-dev.yaml{{ end }}'
