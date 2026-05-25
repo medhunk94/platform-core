@@ -1,0 +1,44 @@
+# Build artifacts
+**/build/
+**/target/
+*.class
+*.jar
+*.war
+
+# Gradle
+.gradle/
+gradle-wrapper.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials and secrets
+credentials-*
+*.env
+secrets/
+*.pem
+*.key
+
+# Kubernetes local configs
+kubeconfig
+kubeconfig.*
+
+# Dependency-Track local data
+dependency-track/data/
+
+# Helm
+charts/*.tgz
+**/Chart.lock
+
+# Logs
+*.log
+logs/

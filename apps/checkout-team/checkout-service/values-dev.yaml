@@ -6,24 +6,14 @@ replicaCount: 1
 # Lower resource requirements for kind cluster
 resources:
   requests:
-    memory: "256Mi"
-    cpu: "250m"
+    memory: "64Mi"
+    cpu: "50m"
   limits:
-    memory: "512Mi"
-    cpu: "500m"
+    memory: "128Mi"
+    cpu: "100m"
 
 # Development-specific configuration
 config:
-  SPRING_PROFILES_ACTIVE: "development"
-  LOG_LEVEL: "DEBUG"
-  ENVIRONMENT: "development"
-  DATABASE_HOST: "postgres-checkout.checkout.svc.cluster.local"
-  DATABASE_PORT: "5432"
-  DATABASE_NAME: "checkout_dev"
-  ORDER_SERVICE_URL: "http://order-service.orders.svc.cluster.local:8080"
-  PAYMENT_SERVICE_URL: "http://payment-service.payment.svc.cluster.local:8080"
-  KAFKA_BOOTSTRAP_SERVERS: "kafka.kafka.svc.cluster.local:9092"
-  KAFKA_TOPIC_CHECKOUT: "dev.checkout.events"
-  SESSION_TIMEOUT: "300"
-  CART_EXPIRY_SECONDS: "600"
-  DEBUG_MODE: "true"
+  PORT: "8080"
+  KAFKA_BROKER: "kafka.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC: "dev-order-topic"
