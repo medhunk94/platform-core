@@ -13,6 +13,10 @@ Everything here was built and tested locally. No cloud account needed.
 ```mermaid
 flowchart TB
     subgraph cluster["Kubernetes Cluster (kind: k8s-platform-dev)"]
+        subgraph gitops["GitOps Layer — ArgoCD"]
+            argocd["ApplicationSets\nMulti-team isolation"]
+        end
+
         subgraph workload["Application Workloads"]
             app["order-processor\n(Consumer)"]
             inv["inventory-service\n(Spring Boot)"]
@@ -40,6 +44,7 @@ flowchart TB
         gradle --> dtrack
     end
 
+    git["Git Repository\n(platform-core)"] -->|"sync"| argocd -->|"deploy"| workload
     kafka -->|"lag > threshold"| keda -->|"scale"| app
     governance -.->|"admit or block"| workload
     resilience -.->|"backup/restore"| workload
@@ -52,6 +57,7 @@ flowchart TB
 
 | Project | Problem it solves | Key Tools |
 |---|---|---|
+| [ArgoCD GitOps Multi-Team](argocd/) | Manual kubectl applies don't scale across teams. Enforce GitOps workflow with team isolation, RBAC boundaries, and automated app discovery. | ArgoCD, ApplicationSets, Helm, AppProjects |
 | [KEDA Event-Driven Autoscaling](keda-event-driven-autoscaling/) | Workloads sit idle consuming resources when there's no work. Scale to zero when idle, scale out fast when load arrives. | KEDA 2.15.1, Kafka, HPA |
 | [Kyverno Policy Engine](kyverno-policy-engine/) | Developers deploy containers running as root, with no resource limits, using `latest` tags. Catch and block misconfigurations at admission time. | Kyverno v1.18.1, 7 ClusterPolicies |
 | [Supply Chain Security](supply-chain-security/) | You can't secure what you can't see. Know every library inside every image you ship, and get alerted when a new CVE hits your dependencies. | CycloneDX, Trivy, Dependency-Track |
@@ -61,12 +67,17 @@ flowchart TB
 
 ## How They Work Together
 
-These aren't four separate tools — they enforce different aspects of the same platform contract:
+These aren't separate tools — they enforce different aspects of the same platform contract:
 
 **Before deployment (supply chain):**
 Gradle builds the app → CycloneDX generates an SBOM → Trivy scans the image →
 Dependency-Track tracks CVEs. A Critical CVE fails the build before the image
 reaches the cluster.
+
+**Deployment (GitOps):**
+Developers commit to Git → ArgoCD detects changes → ApplicationSets auto-discover
+new services → Apps deploy to team-specific namespaces. AppProjects enforce RBAC:
+the checkout team cannot deploy to the orders namespace.
 
 **At admission (governance):**
 When the image is deployed, Kyverno intercepts the request. It blocks the pod if
@@ -90,6 +101,7 @@ from the last backup in minutes.
 | Layer | Technology |
 |---|---|
 | Cluster | kind (Kubernetes in Docker) |
+| GitOps & CD | ArgoCD 2.x, ApplicationSets |
 | Package management | Helm 3 |
 | Autoscaling | KEDA 2.15.1 |
 | Policy engine | Kyverno v1.18.1 |
@@ -114,3 +126,22 @@ kind create cluster --name k8s-platform-dev
 ```
 
 See individual project READMEs for step-by-step setup and testing.
+
+---
+
+## Current Status
+
+### ✅ ArgoCD GitOps Multi-Team Setup
+- **Status:** Deployed and operational
+- **Teams:** `orders-team`, `checkout-team` with RBAC isolation
+- **Applications:** `order-service`, `checkout-service` (auto-discovered via ApplicationSets)
+- **UI:** http://localhost:8081 (admin / 3hl5LJePQtJC8gOf)
+- **Repository:** https://github.com/medhunk94/platform-core.git (feature/systemcharts)
+- **Architecture:** See [argocd/ARCHITECTURE.md](argocd/ARCHITECTURE.md)
+
+### ✅ Kyverno Policies
+- 7 ClusterPolicies active (pod security, resource limits, image governance)
+- Blocking non-compliant deployments at admission time
+
+### 🔧 Other Projects
+- KEDA, Supply Chain Security, Velero - See individual project folders
