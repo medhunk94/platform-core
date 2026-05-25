@@ -4,19 +4,19 @@ name: checkout-service
 namespace: checkout
 
 image:
-  repository: spring-boot-checkout-service
-  tag: "1.0.0"
-  pullPolicy: IfNotPresent
+  repository: ghcr.io/medhunk94/checkout-service
+  tag: "feature-systemcharts"
+  pullPolicy: Always
 
-replicaCount: 3
+replicaCount: 2
 
 resources:
   requests:
-    memory: "512Mi"
-    cpu: "500m"
+    memory: "128Mi"
+    cpu: "100m"
   limits:
-    memory: "1Gi"
-    cpu: "1000m"
+    memory: "256Mi"
+    cpu: "200m"
 
 service:
   type: ClusterIP
@@ -24,24 +24,15 @@ service:
   targetPort: 8080
 
 healthCheck:
-  livenessPath: /actuator/health/liveness
-  readinessPath: /actuator/health/readiness
-  initialDelaySeconds: 45
+  livenessPath: /health
+  readinessPath: /ready
+  initialDelaySeconds: 10
   periodSeconds: 10
 
 config:
-  SPRING_PROFILES_ACTIVE: "production"
-  LOG_LEVEL: "INFO"
-  ENVIRONMENT: "production"
-  DATABASE_HOST: "postgres-checkout.checkout.svc.cluster.local"
-  DATABASE_PORT: "5432"
-  DATABASE_NAME: "checkout_db"
-  ORDER_SERVICE_URL: "http://order-service.orders.svc.cluster.local:8080"
-  PAYMENT_SERVICE_URL: "http://payment-service.payment.svc.cluster.local:8080"
-  KAFKA_BOOTSTRAP_SERVERS: "kafka.kafka.svc.cluster.local:9092"
-  KAFKA_TOPIC_CHECKOUT: "checkout.events"
-  SESSION_TIMEOUT: "1800"
-  CART_EXPIRY_SECONDS: "3600"
+  PORT: "8080"
+  KAFKA_BROKER: "kafka.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC: "order-topic"
 
 securityContext:
   runAsNonRoot: true

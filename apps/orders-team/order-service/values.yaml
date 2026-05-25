@@ -4,19 +4,19 @@ name: order-service
 namespace: orders
 
 image:
-  repository: spring-boot-order-service
-  tag: "1.0.0"
-  pullPolicy: IfNotPresent
+  repository: ghcr.io/medhunk94/order-service
+  tag: "feature-systemcharts"
+  pullPolicy: Always
 
-replicaCount: 3
+replicaCount: 1
 
 resources:
   requests:
-    memory: "512Mi"
-    cpu: "500m"
+    memory: "128Mi"
+    cpu: "100m"
   limits:
-    memory: "1Gi"
-    cpu: "1000m"
+    memory: "256Mi"
+    cpu: "200m"
 
 service:
   type: ClusterIP
@@ -24,22 +24,15 @@ service:
   targetPort: 8080
 
 healthCheck:
-  livenessPath: /actuator/health/liveness
-  readinessPath: /actuator/health/readiness
-  initialDelaySeconds: 45
+  livenessPath: /health
+  readinessPath: /health
+  initialDelaySeconds: 10
   periodSeconds: 10
 
 config:
-  SPRING_PROFILES_ACTIVE: "production"
-  LOG_LEVEL: "INFO"
-  ENVIRONMENT: "production"
-  DATABASE_HOST: "postgres-orders.orders.svc.cluster.local"
-  DATABASE_PORT: "5432"
-  DATABASE_NAME: "orders_db"
-  KAFKA_BOOTSTRAP_SERVERS: "kafka.kafka.svc.cluster.local:9092"
-  KAFKA_TOPIC_ORDERS: "orders.events"
-  CACHE_ENABLED: "true"
-  CACHE_TTL: "300"
+  KAFKA_BROKER: "kafka.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC: "order-topic"
+  CONSUMER_GROUP: "order-processor-group"
 
 securityContext:
   runAsNonRoot: true

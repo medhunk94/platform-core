@@ -1,26 +1,19 @@
 # Order Service - Development Environment Overrides
 
-# Reduce replicas for local development
-replicaCount: 1
+# Keep at 0 for KEDA demo (scales from zero)
+replicaCount: 0
 
 # Lower resource requirements for kind cluster
 resources:
   requests:
-    memory: "256Mi"
-    cpu: "250m"
+    memory: "64Mi"
+    cpu: "50m"
   limits:
-    memory: "512Mi"
-    cpu: "500m"
+    memory: "128Mi"
+    cpu: "100m"
 
 # Development-specific configuration
 config:
-  SPRING_PROFILES_ACTIVE: "development"
-  LOG_LEVEL: "DEBUG"
-  ENVIRONMENT: "development"
-  DATABASE_HOST: "postgres-orders.orders.svc.cluster.local"
-  DATABASE_PORT: "5432"
-  DATABASE_NAME: "orders_dev"
-  KAFKA_BOOTSTRAP_SERVERS: "kafka.kafka.svc.cluster.local:9092"
-  KAFKA_TOPIC_ORDERS: "dev.orders.events"
-  CACHE_ENABLED: "false"
-  DEBUG_MODE: "true"
+  KAFKA_BROKER: "kafka.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC: "dev-order-topic"
+  CONSUMER_GROUP: "order-processor-group-dev"
