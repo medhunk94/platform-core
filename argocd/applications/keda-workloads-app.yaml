@@ -22,7 +22,7 @@ spec:
 
   source:
     repoURL: https://github.com/medhunk94/platform-core.git
-    targetRevision: main
+    targetRevision: feature/systemcharts
     path: keda-event-driven-autoscaling/manifests
 
   destination:

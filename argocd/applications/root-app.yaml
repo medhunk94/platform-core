@@ -25,7 +25,7 @@ spec:
 
   source:
     repoURL: https://github.com/medhunk94/platform-core.git
-    targetRevision: main
+    targetRevision: feature/systemcharts
     # Watch this folder — any Application YAML added here gets created automatically
     path: argocd/applications
 
