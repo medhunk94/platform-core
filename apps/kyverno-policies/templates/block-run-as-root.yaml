@@ -1,0 +1,36 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: block-run-as-root
+  annotations:
+    policies.kyverno.io/title: Block Containers Running as Root
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Containers running as root (UID 0) can write to any file on the container
+      filesystem and may exploit vulnerabilities to escalate to the host.
+      Enforce runAsNonRoot to ensure processes run as an unprivileged user.
+spec:
+  validationFailureAction: {{ .Values.enforcementMode }}
+  background: true
+  rules:
+    - name: block-run-as-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+              {{- range .Values.excludedNamespaces }}
+                - {{ . }}
+              {{- end }}
+      validate:
+        message: "Containers must not run as root. Set securityContext.runAsNonRoot: true"
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  runAsNonRoot: true

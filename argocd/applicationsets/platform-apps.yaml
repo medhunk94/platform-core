@@ -1,0 +1,85 @@
+# ApplicationSet: platform-apps
+#
+# This single ApplicationSet manages ALL platform applications.
+# It uses a git files generator that discovers apps by scanning for config.json
+# files under apps/**. Adding a new application is as simple as:
+#
+#   1. Create apps/my-new-app/ with Chart.yaml, values.yaml, templates/
+#   2. Add apps/my-new-app/config.json with namespace and syncWave
+#   3. Push to Git
+#   4. ArgoCD discovers it and creates the Application automatically — no YAML to write
+#
+# Compare to the naive approach: one manually-written Application YAML per app.
+# With 50 microservices across 3 environments, that's 150 Application files to maintain.
+# This ApplicationSet generates all of them from a single template.
+#
+# Sync waves ensure ordering:
+#   Wave 1: kyverno-policies  — security policies applied before any workload
+#   Wave 2: keda-workloads    — workloads deployed after policies are in place
+#
+# In a multi-environment setup, you'd add a matrix generator here to combine
+# app discovery with environment list (dev/staging/prod), generating one
+# Application per app per environment automatically.
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-apps
+  namespace: argocd
+spec:
+  # goTemplate enables Go/Sprig template functions in the template section
+  # (base, trimSuffix, dir, etc.) instead of the limited {{ path.basename }} syntax
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    - git:
+        repoURL: https://github.com/medhunk94/platform-core.git
+        revision: feature/systemcharts
+        # Discover every config.json under apps/ — each file represents one deployable app
+        files:
+          - path: "apps/**/config.json"
+
+  template:
+    metadata:
+      # Derive app name from the folder name: apps/kyverno-policies/config.json → kyverno-policies
+      name: '{{ base (trimSuffix "/config.json" .path.path) }}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.io
+      annotations:
+        # Sync wave from config.json — controls deploy order across apps
+        argocd.argoproj.io/sync-wave: '{{ .syncWave }}'
+
+    spec:
+      project: platform-team
+
+      source:
+        repoURL: https://github.com/medhunk94/platform-core.git
+        targetRevision: feature/systemcharts
+        # Chart path derived from config.json file location
+        path: '{{ trimSuffix "/config.json" .path.path }}'
+        helm:
+          # Base values always applied
+          # Environment overlay applied on top — dev overrides base where needed
+          # In production: values.yaml + values-staging.yaml + values-prod.yaml
+          valueFiles:
+            - values.yaml
+            - values-dev.yaml
+
+      destination:
+        server: https://kubernetes.default.svc
+        # Destination namespace from config.json — each app declares where it deploys
+        namespace: '{{ .namespace }}'
+
+      syncPolicy:
+        automated:
+          # Remove cluster resources when they are deleted from Git
+          prune: true
+          # Revert manual changes to the cluster back to Git state within minutes
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          # ServerSideApply avoids annotation size limits on large resources
+          # and handles ownership conflicts from previously manually-applied resources
+          - ServerSideApply=true

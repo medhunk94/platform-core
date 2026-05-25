@@ -1,0 +1,47 @@
+# Bootstrap Application — the single file applied manually to start everything.
+#
+# This is the ONLY object applied manually with kubectl. Everything else is Git-driven.
+#
+# Bootstrap sequence:
+#   1. kubectl apply -f argocd/bootstrap/root-app.yaml
+#   2. ArgoCD syncs argocd/applicationsets/ from Git
+#   3. platform-apps ApplicationSet is created
+#   4. ApplicationSet scans apps/**/config.json and generates one Application per app
+#   5. Each Application syncs its Helm chart from Git
+#   6. All platform workloads are deployed — zero additional kubectl commands
+#
+# Sync waves ensure ordering across the generated Applications:
+#   Wave 1 — kyverno-policies: security policies are enforced before workloads start
+#   Wave 2 — keda-workloads:   workloads deploy into a cluster with policies already active
+#
+# Adding a new platform tool:
+#   1. Create apps/my-new-tool/ with Chart.yaml, values.yaml, templates/
+#   2. Add apps/my-new-tool/config.json with namespace and syncWave
+#   3. Push to Git — ArgoCD discovers and deploys it automatically
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.io
+spec:
+  project: platform-team
+
+  source:
+    repoURL: https://github.com/medhunk94/platform-core.git
+    targetRevision: feature/systemcharts
+    # Watches this folder — the ApplicationSet YAML lives here
+    path: argocd/applicationsets
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

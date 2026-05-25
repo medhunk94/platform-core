@@ -1,0 +1,11 @@
+# config.json — ApplicationSet discovery metadata
+# The platform-apps ApplicationSet scans for this file to register this app.
+# Fields:
+#   namespace:  where ArgoCD targets the Helm release (for cluster-scoped resources like
+#               ClusterPolicy, this is the owning namespace — Kyverno in our case)
+#   syncWave:   deployment order relative to other apps (lower = earlier)
+#               Wave 1 ensures policies are in place before any workload is deployed
+{
+  "namespace": "kyverno",
+  "syncWave": "1"
+}

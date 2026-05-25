@@ -1,0 +1,36 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-host-namespaces
+  annotations:
+    policies.kyverno.io/title: Restrict Host Namespaces
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: critical
+    policies.kyverno.io/description: >-
+      Sharing the host network, PID, or IPC namespace breaks container isolation.
+      A pod with hostNetwork can sniff all cluster traffic. A pod with hostPID
+      can see and signal every process on the node, including the kubelet.
+spec:
+  validationFailureAction: {{ .Values.enforcementMode }}
+  background: true
+  rules:
+    - name: restrict-host-namespaces
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+              {{- range .Values.excludedNamespaces }}
+                - {{ . }}
+              {{- end }}
+      validate:
+        message: "Host namespaces (hostNetwork, hostPID, hostIPC) are not allowed"
+        pattern:
+          spec:
+            =(hostNetwork): "false | null"
+            =(hostPID): "false | null"
+            =(hostIPC): "false | null"

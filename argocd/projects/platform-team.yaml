@@ -1,43 +1,87 @@
 # AppProject: platform-team
 #
-# AppProjects are ArgoCD's way of implementing multi-team RBAC.
-# This project restricts what source repos, destination clusters,
-# and resource types this team's Applications are allowed to use.
+# In production, AppProjects enforce team boundaries at the ArgoCD level — separate from
+# Kubernetes RBAC. A team can only deploy FROM their allowed repos TO their allowed namespaces
+# using only the resource types listed here. This prevents a team from accidentally (or
+# maliciously) deploying into another team's namespace or creating cluster-admin bindings.
 #
-# In a real platform team you'd have separate projects per team:
-#   platform-team  → owns infra policies, KEDA, monitoring configs
-#   app-team-a     → owns their microservices in namespace team-a
-#   app-team-b     → owns their microservices in namespace team-b
+# Project-per-team pattern (typical enterprise layout):
+#   platform-team  → owns: kyverno policies, keda workloads, monitoring configs
+#   payment-team   → owns: payment-service, payment-worker  (namespaces: payment-*)
+#   orders-team    → owns: order-api, order-processor        (namespaces: orders-*)
+#   data-team      → owns: kafka, spark-jobs                 (namespaces: data-*)
 #
-# Each team can only deploy from their allowed repos to their allowed namespaces.
+# Key difference from a wildcard project (*): if payment-team tries to deploy into
+# orders-* namespace, ArgoCD rejects it at the project layer before it reaches the cluster.
 
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: platform-team
   namespace: argocd
-  # Finalizer prevents accidental deletion while Applications reference this project
   finalizers:
     - resources-finalizer.argocd.io
 spec:
-  description: Platform engineering team — manages cluster-wide policies and shared workloads
+  description: >-
+    Platform engineering team — owns cluster-wide security policies (Kyverno),
+    event-driven autoscaling (KEDA), and shared infrastructure workloads.
 
-  # Only allow syncing from our platform-core GitHub repo
+  # Only allow deployments from our official platform GitOps repo.
+  # Adding another repo here requires a PR and review — no ad-hoc deployments.
   sourceRepos:
     - "https://github.com/medhunk94/platform-core.git"
 
-  # Allow deploying to any namespace on the local cluster
-  # In production you'd restrict this per team (e.g. only namespace: team-a)
+  # Explicit destination namespaces — not wildcard.
+  # If a new namespace is needed, it must be added here via PR.
   destinations:
-    - namespace: "*"
+    - namespace: kyverno
+      server: https://kubernetes.default.svc
+    - namespace: kafka
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
       server: https://kubernetes.default.svc
 
-  # Allow managing cluster-scoped resources (ClusterPolicy, ClusterRole, etc.)
+  # Cluster-scoped resources this team is permitted to manage.
+  # Kyverno ClusterPolicies and Namespace creation are the primary ones.
   clusterResourceWhitelist:
-    - group: "*"
-      kind: "*"
+    - group: "kyverno.io"
+      kind: ClusterPolicy
+    - group: ""
+      kind: Namespace
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRole
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRoleBinding
 
-  # Allow managing all namespace-scoped resources
+  # Namespace-scoped resources this team can manage.
+  # Explicitly enumerated — no wildcard group/kind.
   namespaceResourceWhitelist:
-    - group: "*"
-      kind: "*"
+    - group: "apps"
+      kind: StatefulSet
+    - group: "apps"
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ResourceQuota
+    - group: ""
+      kind: LimitRange
+    - group: "rbac.authorization.k8s.io"
+      kind: Role
+    - group: "rbac.authorization.k8s.io"
+      kind: RoleBinding
+    - group: "keda.sh"
+      kind: ScaledObject
+    - group: "keda.sh"
+      kind: TriggerAuthentication
+    - group: "networking.k8s.io"
+      kind: NetworkPolicy
+
+  # Warn when resources exist in the cluster that are not tracked in Git.
+  # In production, set this to deny: true to block untracked resources entirely.
+  orphanedResources:
+    warn: true

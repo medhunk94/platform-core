@@ -1,0 +1,36 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: block-privileged-containers
+  annotations:
+    policies.kyverno.io/title: Block Privileged Containers
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: critical
+    policies.kyverno.io/description: >-
+      A privileged container runs with the same capabilities as the host root user.
+      It can access host devices, modify kernel parameters, and escape the container
+      boundary entirely. This is the highest severity pod security risk.
+spec:
+  validationFailureAction: {{ .Values.enforcementMode }}
+  background: true
+  rules:
+    - name: block-privileged
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+              {{- range .Values.excludedNamespaces }}
+                - {{ . }}
+              {{- end }}
+      validate:
+        message: "Privileged containers are not allowed. Remove securityContext.privileged: true"
+        pattern:
+          spec:
+            containers:
+              - =(securityContext):
+                  =(privileged): "false | null"

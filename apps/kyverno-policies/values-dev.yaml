@@ -1,0 +1,15 @@
+# Development environment overrides
+# Applied on top of values.yaml by the ApplicationSet.
+#
+# In dev, all policies run in Audit mode. This means:
+#   - Non-compliant pods are NOT blocked
+#   - Violations are recorded in PolicyReport CRDs
+#   - Teams can see what would fail before the policy is promoted to prod Enforce mode
+#
+# Rollout process for a new policy:
+#   1. Merge policy to Git — deployed in Audit mode to dev automatically
+#   2. Check PolicyReport: kubectl get policyreport -A
+#   3. Fix violations in affected workloads
+#   4. Promote to staging with enforcementMode: Enforce in values-staging.yaml
+#   5. Promote to prod after staging validation
+enforcementMode: Audit

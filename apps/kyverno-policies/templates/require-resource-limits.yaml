@@ -1,0 +1,48 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-limits
+  annotations:
+    policies.kyverno.io/title: Require CPU and Memory Limits
+    policies.kyverno.io/category: Operational Standards
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Requires all containers to define CPU and memory requests and limits.
+      Without limits, a single misbehaving pod can exhaust node resources
+      and starve other workloads including system components.
+spec:
+  validationFailureAction: {{ .Values.enforcementMode }}
+  background: true
+  rules:
+    - name: require-resource-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+              {{- range .Values.excludedNamespaces }}
+                - {{ . }}
+              {{- end }}
+      validate:
+        message: "All containers must define cpu and memory requests and limits"
+        foreach:
+          - list: "request.object.spec.containers"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ `{{ element.resources.limits.cpu || 'MISSING' }}` }}"
+                    operator: Equals
+                    value: "MISSING"
+                  - key: "{{ `{{ element.resources.limits.memory || 'MISSING' }}` }}"
+                    operator: Equals
+                    value: "MISSING"
+                  - key: "{{ `{{ element.resources.requests.cpu || 'MISSING' }}` }}"
+                    operator: Equals
+                    value: "MISSING"
+                  - key: "{{ `{{ element.resources.requests.memory || 'MISSING' }}` }}"
+                    operator: Equals
+                    value: "MISSING"

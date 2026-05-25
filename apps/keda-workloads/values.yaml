@@ -1,0 +1,40 @@
+# Production defaults for keda-workloads
+
+namespace: kafka
+
+kafka:
+  image:
+    repository: apache/kafka
+    tag: "3.9.0"          # pinned — never use latest
+  replicas: 1
+  topic: platform-events
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  storage:
+    size: 1Gi
+
+consumer:
+  image:
+    repository: eclipse-temurin
+    tag: "17-jre-alpine"  # placeholder — teams replace with their actual consumer image
+  replicas: 1             # initial replicas before KEDA takes over
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+scaledobject:
+  minReplicaCount: 0      # scale-to-zero when no lag
+  maxReplicaCount: 20     # matches max partition count
+  lagThreshold: "100"     # scale up when lag exceeds 100 messages per partition
+  activationLagThreshold: "10"
+  consumerGroup: order-processor-consumer-group
+  cooldownPeriod: 300
