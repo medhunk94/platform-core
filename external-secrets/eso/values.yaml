@@ -1,0 +1,14 @@
+# External Secrets Operator Helm values
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+# ESO watches for ExternalSecret resources and syncs them
+installCRDs: true
