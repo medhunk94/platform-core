@@ -60,6 +60,7 @@ flowchart TB
 | [ArgoCD GitOps Multi-Team](argocd/) | Manual kubectl applies don't scale across teams. Enforce GitOps workflow with team isolation, RBAC boundaries, and automated app discovery. | ArgoCD, ApplicationSets, Helm, AppProjects |
 | [KEDA Event-Driven Autoscaling](keda-event-driven-autoscaling/) | Workloads sit idle consuming resources when there's no work. Scale to zero when idle, scale out fast when load arrives. | KEDA 2.15.1, Kafka, HPA |
 | [Kyverno Policy Engine](kyverno-policy-engine/) | Developers deploy containers running as root, with no resource limits, using `latest` tags. Catch and block misconfigurations at admission time. | Kyverno v1.18.1, 7 ClusterPolicies |
+| [External Secrets Operator](external-secrets/) | Hardcoded secrets in Git or ConfigMaps are a security risk. Pull secrets from Vault at runtime and keep them out of version control. | ESO, HashiCorp Vault |
 | [Supply Chain Security](supply-chain-security/) | You can't secure what you can't see. Know every library inside every image you ship, and get alerted when a new CVE hits your dependencies. | CycloneDX, Trivy, Dependency-Track |
 | [Velero Backup & Restore](velero/) | Clusters fail. Namespaces get deleted. Have a tested restore path before you need it. | Velero, MinIO |
 
@@ -78,6 +79,11 @@ reaches the cluster.
 Developers commit to Git → ArgoCD detects changes → ApplicationSets auto-discover
 new services → Apps deploy to team-specific namespaces. AppProjects enforce RBAC:
 the checkout team cannot deploy to the orders namespace.
+
+**Secrets management:**
+ESO pulls secrets from Vault and creates K8s Secrets automatically. Database passwords,
+API keys, and credentials stay in Vault - never in Git. When a secret rotates in Vault,
+ESO syncs the change to the cluster.
 
 **At admission (governance):**
 When the image is deployed, Kyverno intercepts the request. It blocks the pod if

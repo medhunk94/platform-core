@@ -1,0 +1,21 @@
+# Vault in dev mode - NOT for production
+# Dev mode stores everything in memory, no persistence
+
+server:
+  dev:
+    enabled: true
+    devRootToken: "root"  # Simple token for local testing
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+  dataStorage:
+    enabled: false  # Dev mode doesn't need storage
+
+injector:
+  enabled: false  # We're using ESO, not Vault injector
