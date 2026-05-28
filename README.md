@@ -15,7 +15,7 @@ Production-grade platform engineering practices covering GitOps, autoscaling, po
 | **[External Secrets](external-secrets/)** | Pull database passwords and API keys from Vault. Zero secrets in Git. | ✅ ESO + Vault deployed |
 | **[Supply Chain Security](supply-chain-security/)** | Generate SBOMs, scan images with Trivy, track CVEs in Dependency-Track. | ✅ SBOM generation |
 | **[Velero Backup](velero/)** | Scheduled namespace backups with MinIO backend. Tested restore paths. | ✅ Configured |
-| **[Terraform Infrastructure](terraform/)** | Modular blueprints for Azure AKS + PostgreSQL + VNet. Secrets from Key Vault, not tfvars. | ✅ Production-ready |
+| **[Terraform Infrastructure](terraform/)** | Modular blueprints for Azure AKS + PostgreSQL + VNet. Secrets from Key Vault, not tfvars. | ✅ Blueprints designed |
 
 ---
 
@@ -185,7 +185,7 @@ Each project folder has detailed setup instructions.
 ### ✅ Terraform Infrastructure
 - **Blueprints**: 6 reusable modules (AKS, PostgreSQL, VNet, subnet, NSG, resource-group)
 - **Security**: Secrets from Azure Key Vault, not tfvars
-- **Ready**: Production-ready for Azure deployment
+- **Status**: Designed for Azure AKS, requires subscription + Key Vault prerequisites
 
 ---
 

@@ -1,12 +1,14 @@
-# Azure Key Vault - Read secrets at runtime
-# This Key Vault should be pre-created in a shared resource group
-# It contains sensitive values like database passwords
+# Dev Environment - AKS Platform Infrastructure
+# Designed for Azure deployment. Requires:
+# - Key Vault "platform-kv-dev" in "platform-shared-rg" with secret "postgres-admin-password"
+# - Storage account "tfstateplatformdev" for remote state (see versions.tf)
+
+# Key Vault for secrets management (must exist before terraform apply)
 data "azurerm_key_vault" "platform_secrets" {
   name                = "platform-kv-${var.environment}"
   resource_group_name = "platform-shared-rg"
 }
 
-# Retrieve PostgreSQL admin password from Key Vault
 data "azurerm_key_vault_secret" "postgres_password" {
   name         = "postgres-admin-password"
   key_vault_id = data.azurerm_key_vault.platform_secrets.id
@@ -82,7 +84,6 @@ module "aks" {
 }
 
 # PostgreSQL Database
-# Password is retrieved from Azure Key Vault at runtime - never stored in code
 module "postgresql" {
   source                         = "../../blueprints/postgresql"
   name                           = "platform-db-${var.environment}"

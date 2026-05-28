@@ -164,3 +164,12 @@ module "redis" {
 ```
 
 **New Region**: Set `location = "eastus"` in environment variables. All resources deploy to new region.
+
+## Deployment Status
+
+The infrastructure code is designed and validated but requires Azure subscription and prerequisites:
+- Azure Key Vault with secrets (see Security Practices section)
+- Storage account for Terraform state
+- Service Principal or Azure CLI authentication
+
+The blueprints architecture demonstrates production-ready patterns without needing live cloud resources to verify the design.
