@@ -1,153 +1,213 @@
-# Kubernetes Platform Toolkit
+# Kubernetes Platform Engineering Portfolio
 
-A hands-on portfolio of platform engineering practices built on a local Kubernetes
-cluster (kind). Each project tackles a different operational concern that any
-production platform team deals with, scaling, governance, security, and resilience.
-
-Everything here was built and tested locally. No cloud account needed.
-
----
-
-## Platform Architecture
-
-```mermaid
-flowchart TB
-    subgraph cluster["Kubernetes Cluster (kind: k8s-platform-dev)"]
-        subgraph gitops["GitOps Layer — ArgoCD"]
-            argocd["ApplicationSets\nMulti-team isolation"]
-        end
-
-        subgraph workload["Application Workloads"]
-            app["order-processor\n(Consumer)"]
-            inv["inventory-service\n(Spring Boot)"]
-        end
-
-        subgraph governance["Governance Layer — Kyverno"]
-            kyverno["7 ClusterPolicies\nBlock on admission"]
-        end
-
-        subgraph scaling["Scaling Layer — KEDA"]
-            keda["ScaledObject\nKafka lag → HPA"]
-            kafka["Kafka (KRaft)\norder-topic"]
-        end
-
-        subgraph resilience["Resilience Layer — Velero"]
-            velero["Scheduled Backups\nNamespace restore"]
-        end
-    end
-
-    subgraph security["Supply Chain Security (Build Time)"]
-        gradle["Gradle Build\n+ CycloneDX SBOM"]
-        trivy["Trivy\nImage Scan"]
-        dtrack["Dependency-Track\nCVE Dashboard"]
-        gradle --> trivy --> dtrack
-        gradle --> dtrack
-    end
-
-    git["Git Repository\n(platform-core)"] -->|"sync"| argocd -->|"deploy"| workload
-    kafka -->|"lag > threshold"| keda -->|"scale"| app
-    governance -.->|"admit or block"| workload
-    resilience -.->|"backup/restore"| workload
-    security -.->|"image pushed\nfrom here"| workload
-```
+Production-grade platform engineering practices covering GitOps, autoscaling, policy enforcement, secrets management, and cloud infrastructure. Built with real microservices and tested both locally (kind) and cloud-ready (Azure AKS via Terraform).
 
 ---
 
 ## Projects
 
-| Project | Problem it solves | Key Tools |
+| Project | Purpose | Status |
 |---|---|---|
-| [ArgoCD GitOps Multi-Team](argocd/) | Manual kubectl applies don't scale across teams. Enforce GitOps workflow with team isolation, RBAC boundaries, and automated app discovery. | ArgoCD, ApplicationSets, Helm, AppProjects |
-| [KEDA Event-Driven Autoscaling](keda-event-driven-autoscaling/) | Workloads sit idle consuming resources when there's no work. Scale to zero when idle, scale out fast when load arrives. | KEDA 2.15.1, Kafka, HPA |
-| [Kyverno Policy Engine](kyverno-policy-engine/) | Developers deploy containers running as root, with no resource limits, using `latest` tags. Catch and block misconfigurations at admission time. | Kyverno v1.18.1, 7 ClusterPolicies |
-| [External Secrets Operator](external-secrets/) | Hardcoded secrets in Git or ConfigMaps are a security risk. Pull secrets from Vault at runtime and keep them out of version control. | ESO, HashiCorp Vault |
-| [Supply Chain Security](supply-chain-security/) | You can't secure what you can't see. Know every library inside every image you ship, and get alerted when a new CVE hits your dependencies. | CycloneDX, Trivy, Dependency-Track |
-| [Velero Backup & Restore](velero/) | Clusters fail. Namespaces get deleted. Have a tested restore path before you need it. | Velero, MinIO |
+| **[Python Microservices](apps/)** | FastAPI checkout service (HTTP → Kafka) + Kafka consumer order service. Real working apps with CI/CD, not demos. | ✅ Production images in GHCR |
+| **[ArgoCD GitOps](argocd/)** | Multi-team GitOps with ApplicationSets. Checkout and orders teams deploy independently with RBAC isolation. | ✅ Deployed |
+| **[KEDA Autoscaling](keda-event-driven-autoscaling/)** | Event-driven autoscaling based on Kafka lag. Scale from 0 to N based on workload, not CPU. | ✅ Configured |
+| **[Kyverno Policies](kyverno-policy-engine/)** | Block privileged containers, require resource limits, enforce security standards at admission time. | ✅ 7 policies active |
+| **[External Secrets](external-secrets/)** | Pull database passwords and API keys from Vault. Zero secrets in Git. | ✅ ESO + Vault deployed |
+| **[Supply Chain Security](supply-chain-security/)** | Generate SBOMs, scan images with Trivy, track CVEs in Dependency-Track. | ✅ SBOM generation |
+| **[Velero Backup](velero/)** | Scheduled namespace backups with MinIO backend. Tested restore paths. | ✅ Configured |
+| **[Terraform Infrastructure](terraform/)** | Modular blueprints for Azure AKS + PostgreSQL + VNet. Secrets from Key Vault, not tfvars. | ✅ Blueprints designed |
 
 ---
 
-## How They Work Together
+## What Makes This Different
 
-These aren't separate tools — they enforce different aspects of the same platform contract:
+**Real Microservices**: Not placeholder YAML. The checkout-service is a FastAPI app that publishes to Kafka. The order-service consumes from Kafka with graceful shutdown. Both have Dockerfiles, CI/CD pipelines, and container images published to GitHub Container Registry.
 
-**Before deployment (supply chain):**
-Gradle builds the app → CycloneDX generates an SBOM → Trivy scans the image →
-Dependency-Track tracks CVEs. A Critical CVE fails the build before the image
-reaches the cluster.
+**CI/CD Integration**: GitHub Actions workflow builds images, runs Trivy security scans, pushes to GHCR with branch tags. CodeQL v3 for code analysis.
 
-**Deployment (GitOps):**
-Developers commit to Git → ArgoCD detects changes → ApplicationSets auto-discover
-new services → Apps deploy to team-specific namespaces. AppProjects enforce RBAC:
-the checkout team cannot deploy to the orders namespace.
+**Multi-Team Structure**: Two separate teams (checkout-team, orders-team) with isolated namespaces, separate AppProjects in ArgoCD, and RBAC boundaries. Shows how platform scales across teams without stepping on each other.
 
-**Secrets management:**
-ESO pulls secrets from Vault and creates K8s Secrets automatically. Database passwords,
-API keys, and credentials stay in Vault - never in Git. When a secret rotates in Vault,
-ESO syncs the change to the cluster.
+**Zero Secrets in Git**: Database passwords pulled from HashiCorp Vault via External Secrets Operator. Terraform reads secrets from Azure Key Vault at runtime. No credentials in code or tfvars.
 
-**At admission (governance):**
-When the image is deployed, Kyverno intercepts the request. It blocks the pod if
-the image uses `:latest`, runs as root, has no resource limits, or enables
-privileged mode. The developer gets an immediate error with the reason.
+**Cloud-Ready Infrastructure**: Terraform uses modular blueprints pattern. Same modules work for dev/staging/prod. Azure AKS with auto-scaling (2-5 nodes), VNet-integrated PostgreSQL, Azure CNI networking, Calico network policy.
 
-**At runtime (scaling):**
-KEDA watches Kafka consumer group lag on `order-topic`. When lag crosses the
-threshold, it scales `order-processor` from 0 to N replicas. When lag clears,
-it scales back to zero. No manual intervention.
-
-**At failure (resilience):**
-Velero takes scheduled backups of namespaces and persistent volumes. If a
-namespace is accidentally deleted or a node fails, the workload is restored
-from the last backup in minutes.
+**Security by Default**: Kyverno blocks containers running as root, without resource limits, or using `:latest` tags. Images scanned before deployment. Network policies isolate pods.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
+| Component | Technology |
 |---|---|
-| Cluster | kind (Kubernetes in Docker) |
-| GitOps & CD | ArgoCD 2.x, ApplicationSets |
-| Package management | Helm 3 |
-| Autoscaling | KEDA 2.15.1 |
-| Policy engine | Kyverno v1.18.1 |
-| Message broker | Apache Kafka 3.9.0 (KRaft) |
-| SBOM generation | CycloneDX Gradle plugin 1.8.2 |
-| Vulnerability scanning | Trivy 0.70.0 |
-| CVE tracking | Dependency-Track 4.14.2 |
-| Backup & restore | Velero |
-| App runtime | Java 17, Spring Boot 3.2.5 |
+| **Applications** | Python 3.12, FastAPI, kafka-python 2.0.2 |
+| **Local Cluster** | kind (Kubernetes in Docker) |
+| **Cloud Infrastructure** | Terraform, Azure AKS, Azure PostgreSQL, Azure Key Vault |
+| **GitOps** | ArgoCD 2.x, ApplicationSets, Helm 3 |
+| **CI/CD** | GitHub Actions, Trivy scanner, CodeQL v3 |
+| **Container Registry** | GitHub Container Registry (GHCR) |
+| **Autoscaling** | KEDA 2.15.1, Kafka ScaledObject |
+| **Policy Engine** | Kyverno v1.18.1 |
+| **Secrets Management** | External Secrets Operator, HashiCorp Vault |
+| **Message Broker** | Apache Kafka 3.9.0 (KRaft) |
+| **Security Scanning** | Trivy 0.70.0, CycloneDX SBOM |
+| **Backup** | Velero, MinIO |
+
+---
+
+## Microservices
+
+### checkout-service (FastAPI)
+- **Purpose**: HTTP API that accepts checkout requests and publishes to Kafka
+- **Endpoints**: `POST /api/checkout`, `GET /health`, `GET /ready`
+- **Tech**: FastAPI, uvicorn, kafka-python
+- **Image**: `ghcr.io/medhunk94/checkout-service:feature-systemcharts`
+
+### order-service (Kafka Consumer)
+- **Purpose**: Consumes orders from Kafka topic, processes them with graceful shutdown
+- **Tech**: Python, kafka-python, consumer group with offset management
+- **Features**: Signal handlers (SIGTERM/SIGINT), structured logging
+- **Image**: `ghcr.io/medhunk94/order-service:feature-systemcharts`
+
+Both services have:
+- Single-stage Dockerfiles (non-root user 1001)
+- GitHub Actions CI/CD pipeline
+- Trivy security scanning
+- Helm values for dev and production
+- Health/readiness probes for Kubernetes
+
+---
+
+## Infrastructure as Code
+
+The `terraform/` directory contains production-grade Azure infrastructure using a modular blueprints pattern:
+
+**Blueprints** (reusable modules):
+- `resource-group/`: Azure resource group
+- `vnet/`: Virtual network with address space
+- `subnet/`: Subnet with service endpoints
+- `nsg/`: Network security groups
+- `aks/`: AKS cluster with auto-scaling, Azure CNI, Calico network policy
+- `postgresql/`: PostgreSQL with VNet integration, SSL enforcement
+
+**Environment Composition**:
+- `environments/dev/`: Composes blueprints into complete infrastructure
+- Remote state in Azure Storage
+- Secrets retrieved from Azure Key Vault at runtime (never in code)
+
+**Key Features**:
+- Auto-scaling AKS (2-5 nodes based on workload)
+- VNet-integrated PostgreSQL (no public access)
+- SystemAssigned managed identity (no credential management)
+- All resources tagged for cost tracking
+
+See [terraform/README.md](terraform/README.md) for architecture details and Terraform concepts implemented.
+
+---
+
+## How It Works Together
+
+**Build Time**:
+1. Developer commits code to GitHub
+2. GitHub Actions builds Docker image
+3. Trivy scans for vulnerabilities
+4. Image pushed to GHCR with branch tag
+5. CycloneDX generates SBOM
+
+**Deploy Time**:
+1. Developer updates Helm values in Git
+2. ArgoCD detects change via ApplicationSet
+3. Kyverno validates pod security before admission
+4. ESO pulls secrets from Vault, creates K8s Secret
+5. Pod starts with secrets mounted
+
+**Runtime**:
+1. checkout-service receives HTTP POST, publishes to Kafka
+2. order-service consumes message from Kafka topic
+3. KEDA monitors consumer group lag
+4. When lag > threshold, KEDA scales order-service pods
+5. Velero takes scheduled backups of all namespaces
+
+**Failure Recovery**:
+1. Namespace accidentally deleted
+2. `velero restore create --from-backup latest`
+3. All resources restored from MinIO backup
 
 ---
 
 ## Running Locally
 
-**Prerequisites:** Docker Desktop (or Rancher Desktop), kind, kubectl, Helm 3
+### Prerequisites
+- Docker Desktop
+- kind
+- kubectl
+- Helm 3
+
+### Quick Start
 
 ```bash
-# Create the cluster
+# Create cluster
 kind create cluster --name k8s-platform-dev
 
-# Each project has its own setup — see the README in each folder
+# Deploy projects (see individual README files)
+cd external-secrets && ./setup.sh
+cd ../argocd && kubectl apply -k install/
+cd ../kyverno-policy-engine && helm install kyverno ...
 ```
 
-See individual project READMEs for step-by-step setup and testing.
+Each project folder has detailed setup instructions.
 
 ---
 
 ## Current Status
 
-### ✅ ArgoCD GitOps Multi-Team Setup
-- **Status:** Deployed and operational
-- **Teams:** `orders-team`, `checkout-team` with RBAC isolation
-- **Applications:** `order-service`, `checkout-service` (auto-discovered via ApplicationSets)
-- **UI:** http://localhost:8081 (admin / 3hl5LJePQtJC8gOf)
-- **Repository:** https://github.com/medhunk94/platform-core.git (feature/systemcharts)
-- **Architecture:** See [argocd/ARCHITECTURE.md](argocd/ARCHITECTURE.md)
+### ✅ Python Microservices
+- **checkout-service**: FastAPI app publishing to Kafka
+- **order-service**: Kafka consumer with graceful shutdown
+- **CI/CD**: GitHub Actions building and pushing to GHCR
+- **Images**: Public in GitHub Container Registry
+- **Repository**: https://github.com/medhunk94/platform-core.git (branch: feature/systemcharts)
 
-### ✅ Kyverno Policies
-- 7 ClusterPolicies active (pod security, resource limits, image governance)
-- Blocking non-compliant deployments at admission time
+### ✅ ArgoCD Multi-Team GitOps
+- **Deployed**: http://localhost:8081
+- **Teams**: checkout-team, orders-team with RBAC isolation
+- **ApplicationSets**: Auto-discover services per team
+- **Projects**: Separate AppProjects enforce boundaries
 
-### 🔧 Other Projects
-- KEDA, Supply Chain Security, Velero - See individual project folders
+### ✅ External Secrets Operator
+- **ESO**: Deployed and syncing secrets from Vault
+- **Vault**: Running in dev mode with sample secrets
+- **Integration**: Services pull DB passwords from Vault
+
+### ✅ Kyverno Policy Engine
+- **Policies**: 7 ClusterPolicies active
+- **Enforcement**: Block privileged containers, require resource limits, reject `:latest` tags
+
+### ✅ Terraform Infrastructure
+- **Blueprints**: 6 reusable modules (AKS, PostgreSQL, VNet, subnet, NSG, resource-group)
+- **Security**: Secrets from Azure Key Vault, not tfvars
+- **Status**: Designed for Azure AKS, requires subscription + Key Vault prerequisites
+
+---
+
+## Repository Structure
+
+```
+platform-core/
+├── apps/                          # Microservices
+│   ├── checkout-team/
+│   │   └── checkout-service/      # FastAPI producer
+│   └── orders-team/
+│       └── order-service/         # Kafka consumer
+├── argocd/                        # GitOps configuration
+│   ├── applicationsets/           # Team app discovery
+│   ├── projects/                  # RBAC boundaries
+│   └── bootstrap/                 # Root app
+├── external-secrets/              # ESO + Vault setup
+├── keda-event-driven-autoscaling/ # KEDA configuration
+├── kyverno-policy-engine/         # Policy definitions
+├── supply-chain-security/         # SBOM generation
+├── terraform/                     # Cloud infrastructure
+│   ├── blueprints/                # Reusable modules
+│   └── environments/dev/          # Dev composition
+└── velero/                        # Backup configuration
+```
