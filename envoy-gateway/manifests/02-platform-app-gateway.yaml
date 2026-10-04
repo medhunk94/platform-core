@@ -1,0 +1,23 @@
+# Rendered from a template by the platform team for every new app. Shown for "orders".
+# Listener names and hostnames are global once Gateways are merged, so both carry the namespace.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: orders
+  namespace: orders
+  annotations:
+    cert-manager.io/cluster-issuer: corp-internal-ca   # cert-manager creates the Certificate from this
+spec:
+  gatewayClassName: internal
+  listeners:
+    - name: orders-https
+      protocol: HTTPS
+      port: 443
+      hostname: orders.int.corp
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - {kind: Secret, name: orders-int-corp-tls}   # must live in the Gateway's namespace
+      allowedRoutes:
+        namespaces: {from: Same}
+        kinds: [{kind: HTTPRoute}]

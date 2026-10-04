@@ -1,0 +1,49 @@
+# Applied once by the platform team.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: internal-proxy
+  namespace: envoy-gateway-system
+spec:
+  mergeGateways: true            # every Gateway in this class shares one Envoy fleet and one LB
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: LoadBalancer
+        externalTrafficPolicy: Cluster
+        annotations:
+          service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+          service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "aks-ingress-subnet"
+          service.beta.kubernetes.io/azure-load-balancer-ipv4: "10.0.1.10"   # pin it, must be inside the subnet
+          service.beta.kubernetes.io/azure-load-balancer-tcp-idle-timeout: "30"  # minutes, default is 4
+      envoyDeployment:
+        container:
+          resources:
+            requests: {cpu: "1", memory: 1Gi}
+            limits: {memory: 2Gi}            # deliberately no CPU limit
+      envoyHpa:
+        minReplicas: 3
+        maxReplicas: 30
+        metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target: {type: Utilization, averageUtilization: 60}
+      envoyPDB:
+        minAvailable: 2
+  shutdown:
+    drainTimeout: 60s
+    minDrainDuration: 15s
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: internal
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: internal-proxy
+    namespace: envoy-gateway-system

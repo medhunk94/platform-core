@@ -1,0 +1,25 @@
+# App teams can edit routes and read Gateways. They cannot create, edit or delete a Gateway.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: route-editor
+  namespace: orders
+rules:
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes", "grpcroutes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: orders-route-editors
+  namespace: orders
+subjects:
+  - {kind: Group, name: orders-developers, apiGroup: rbac.authorization.k8s.io}
+roleRef:
+  kind: Role
+  name: route-editor
+  apiGroup: rbac.authorization.k8s.io
